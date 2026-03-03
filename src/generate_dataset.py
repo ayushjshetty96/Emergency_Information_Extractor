@@ -82,11 +82,3 @@ df.to_csv("emergency_dataset.csv",index=False)
 
 print("Dataset generated!")
 
-def add_noise(text):
-
-    text = text.replace("accident","acident")
-
-    text = text.replace("Bangalore","banglore")
-
-    return text
-    
