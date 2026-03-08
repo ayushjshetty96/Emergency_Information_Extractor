@@ -7,56 +7,57 @@ df = pd.read_csv("data/processed/emergency_dataset_final.csv")
 
 print("Original dataset shape:", df.shape)
 
-
-# Keep only rows that contain text
+# Remove rows without text
 df = df.dropna(subset=["text"])
-
 
 # Clean text
 df["clean_text"] = df["text"].apply(clean_text)
 
-
-# Remove empty cleaned text
+# Remove very short texts
 df = df[df["clean_text"].str.len() > 3]
 
+print("Dataset after text cleaning:", df.shape)
 
-print("Dataset after cleaning:", df.shape)
+# Ensure incident column exists
+if "incident" not in df.columns:
+    raise ValueError("Dataset must contain an 'incident' column.")
 
+# Remove rows with missing incident values
+df = df.dropna(subset=["incident"])
 
-# If incident column exists use it as label
-if "incident" in df.columns:
-    df["label"] = df["incident"].fillna("unknown")
-else:
-    df["label"] = "unknown"
+# Remove unknown class
+df = df[df["incident"] != "unknown"]
 
+# Create label column
+df["label"] = df["incident"].astype(str)
 
 # Keep only required columns
 df = df[["clean_text", "label"]]
 
+print("Dataset after label cleaning:", df.shape)
 
-# Train / Validation / Test split
+# Split dataset
 train_df, temp_df = train_test_split(
     df,
     test_size=0.2,
-    random_state=42
+    random_state=42,
+    stratify=df["label"]
 )
 
 val_df, test_df = train_test_split(
     temp_df,
     test_size=0.5,
-    random_state=42
+    random_state=42,
+    stratify=temp_df["label"]
 )
-
 
 print("Train size:", train_df.shape)
 print("Validation size:", val_df.shape)
 print("Test size:", test_df.shape)
 
-
 # Save datasets
 train_df.to_csv("data/processed/train.csv", index=False)
 val_df.to_csv("data/processed/validation.csv", index=False)
 test_df.to_csv("data/processed/test.csv", index=False)
-
 
 print("Training datasets saved successfully.")

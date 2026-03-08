@@ -1,8 +1,22 @@
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual environments
+.venv/
 venv/
-.env
-.ipynb_checkpoints.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# System files
 .DS_Store
+
+# Model weights and checkpoints (too large for GitHub)
+models/classifier/*.safetensors
+models/classifier/checkpoint-*/
+
+# Logs
+logs/
