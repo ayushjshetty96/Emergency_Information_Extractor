@@ -2,6 +2,11 @@
 
 from typing import Dict, Any
 
+from src.geocoding import get_coordinates
+from src.priority_score import calculate_priority
+from src.duplicate_detection import is_duplicate
+from src.victim_extraction import extract_victims
+
 from .speech_to_text import transcribe_audio
 from .preprocessing import clean_text
 from .language_detection import detect_language
@@ -12,21 +17,65 @@ from .severity_model import estimate_severity
 
 def run_pipeline_from_audio(audio_path: str) -> Dict[str, Any]:
     """Run the full pipeline starting from an audio file."""
+
+    # Convert speech to text
     text = transcribe_audio(audio_path)
+
+    return run_pipeline_from_text(text)
+
+
+def run_pipeline_from_text(text: str) -> Dict[str, Any]:
+    """Run the full pipeline starting from text."""
+
+    # Preprocessing
     text_clean = clean_text(text)
+
+    # Language detection
     language = detect_language(text_clean)
+
+    # Named entity extraction
     entities = extract_entities(text_clean)
+
+    # Emergency classification
     emergency = classify_emergency(text_clean)
+
+    # Severity estimation
     severity = estimate_severity(text_clean)
 
-    return {
+    # Extract location from entities
+    locations = list(set(e["text"] for e in entities))
+    location_text = ", ".join(locations) if locations else None
+
+    # Geolocation coordinates
+    latitude, longitude = get_coordinates(location_text)
+
+    # Priority score
+    priority_score = calculate_priority(text_clean, severity)
+
+    # Duplicate detection
+    duplicate_report = is_duplicate(text_clean)
+
+    # Victim extraction
+    victims = extract_victims(text_clean)
+
+    # Final structured output
+    result = {
         "raw_text": text,
         "clean_text": text_clean,
         "language": language,
         "entities": entities,
-        "emergency": emergency,
+        "incident": emergency["label"],
+        "confidence": emergency["score"],
+        "location": location_text,
+        "latitude": latitude,
+        "longitude": longitude,
         "severity": severity,
+        "priority_score": priority_score,
+        "victims": victims,
+        "duplicate_report": duplicate_report,
     }
+
+    return result
 
 
 if __name__ == "__main__":
@@ -42,29 +91,26 @@ if __name__ == "__main__":
         "A gang robbery reported outside a jewelry shop near Indiranagar metro",
         "Bridge collapse reported near railway station causing traffic jam",
         "Gas leak reported near Indiranagar metro station Bangalore",
-        # Kannada sentence written in English (transliteration)
         "Bengaluru Majestic bus stand nalli accident aagide"
     ]
 
     for text in test_sentences:
 
-        text_clean = clean_text(text)
-        language = detect_language(text_clean)
-        entities = extract_entities(text_clean)
-        emergency = classify_emergency(text_clean)
-        severity = estimate_severity(text_clean)
-
-        locations = list(set(e["text"] for e in entities))
-        location_text = ", ".join(locations)
+        result = run_pipeline_from_text(text)
 
         print("\n==============================")
         print("Emergency Message Analysis")
         print("==============================")
 
         print("\nInput:")
-        print(text)
+        print(result["raw_text"])
 
-        print("\nIncident:", emergency["label"], "(confidence:", round(emergency["score"], 3), ")")
-        print("Location:", location_text if location_text else "Unknown")
-        print("Severity:", severity)
-        print("Language:", language)
+        print("\nIncident:", result["incident"], "(confidence:", round(result["confidence"], 3), ")")
+        print("Location:", result["location"] if result["location"] else "Unknown")
+        print("Latitude:", result["latitude"])
+        print("Longitude:", result["longitude"])
+        print("Severity:", result["severity"])
+        print("Priority Score:", result["priority_score"])
+        print("Victims:", result["victims"])
+        print("Language:", result["language"])
+        print("Duplicate Report:", result["duplicate_report"])
