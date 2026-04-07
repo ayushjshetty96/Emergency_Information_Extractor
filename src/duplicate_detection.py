@@ -1,11 +1,11 @@
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
 previous_messages = []
 
 def is_duplicate(message, threshold=0.8):
+    # Lazy load model to avoid startup delays
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
     global previous_messages
 

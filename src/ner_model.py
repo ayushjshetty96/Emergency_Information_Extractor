@@ -1,18 +1,29 @@
 """Named Entity Recognition (NER) model for emergency-related entities."""
 
+import re
 from transformers import pipeline
 from typing import List, Dict, Any
 
-# Load pretrained NER model
-ner_pipeline = pipeline(
-    "ner",
-    model="dslim/bert-base-NER",
-    aggregation_strategy="simple"
-)
+
+def _cleanup_phrase(phrase: str, stop_words: set) -> str:
+    tokens = phrase.split()
+    cleaned = []
+    for token in tokens:
+        if token.lower() in stop_words:
+            break
+        cleaned.append(token)
+    return " ".join(cleaned).strip(' ,.')
 
 
 def extract_entities(text: str) -> List[Dict[str, Any]]:
     """Extract location entities using NER + simple rules."""
+    
+    # Lazy load NER model to avoid startup delays
+    ner_pipeline = pipeline(
+        "ner",
+        model="dslim/bert-base-NER",
+        aggregation_strategy="simple"
+    )
 
     entities = []
 
@@ -78,27 +89,43 @@ def extract_entities(text: str) -> List[Dict[str, Any]]:
                 entities.append(f"{prev.lower()} board")
 
     # -------------------------------------
-    # Step 3 — Phrase extraction
-    # near / in / at / outside / inside
+    # Step 3 — Phrase extraction using regex
+    # Capture longer location phrases like "MG Road, Gurugram, Haryana"
     # -------------------------------------
-    cues = ["near", "in", "at", "outside", "inside"]
+    stop_words = {
+        "par", "multiple", "vehicles", "people", "injured", "dead",
+        "missing", "reported", "happening", "happened", "causing",
+        "nearby", "inside", "outside", "at", "in", "on", "with",
+        "and", "or", "but"
+    }
+
+    location_patterns = [
+        r"\bnear\s+([A-Za-z0-9\s,]+?)(?=\s*(?:par|with|and|or|but|on|$))",
+        r"\bin\s+([A-Za-z0-9\s,]+?)(?=\s*(?:par|with|and|or|but|on|$))",
+        r"\bat\s+([A-Za-z0-9\s,]+?)(?=\s*(?:par|with|and|or|but|on|$))",
+        r"\boutside\s+([A-Za-z0-9\s,]+?)(?=\s*(?:par|with|and|or|but|on|$))",
+        r"\binside\s+([A-Za-z0-9\s,]+?)(?=\s*(?:par|with|and|or|but|on|$))"
+    ]
+
+    for pattern in location_patterns:
+        for match in re.findall(pattern, text, flags=re.IGNORECASE):
+            phrase = match.strip(' ,.')
+            cleaned_phrase = _cleanup_phrase(phrase, stop_words)
+            if cleaned_phrase:
+                entities.append(cleaned_phrase.lower())
+
+    capitalized_pattern = re.compile(
+        r"\b(?:[A-Z]{2,}|[A-Z][a-z]+)(?:\s+(?:[A-Z]{2,}|[A-Z][a-z]+|road|causeway|street|lane|junction|stand|station|city|area|square|market|circle|haryana|gurugram|bengaluru|hyderabad|mumbai|delhi|pune|noida|chennai|kolkata|ahmedabad|jaipur))+\b"
+    )
+
+    for match in capitalized_pattern.findall(text):
+        phrase = match.strip(' ,.')
+        if len(phrase.split()) >= 2:
+            cleaned_phrase = _cleanup_phrase(phrase, stop_words)
+            if cleaned_phrase:
+                entities.append(cleaned_phrase.lower())
+
     words = text.split()
-
-    for i, w in enumerate(words):
-        if w.lower() in cues and i + 1 < len(words):
-
-            phrase_words = []
-
-            for j in range(i + 1, min(i + 6, len(words))):
-                token = words[j].strip(",.")
-                phrase_words.append(token)
-
-                # stop if next word is lowercase
-                if j > i + 1 and token[0].islower():
-                    break
-
-            phrase = " ".join(phrase_words).lower()
-            entities.append(phrase)
 
     # -------------------------------------
     # Step 3b — Kannada markers (nalli / hatra / hattira)
@@ -170,4 +197,11 @@ def extract_entities(text: str) -> List[Dict[str, Any]]:
     # remove duplicates
     cleaned = list(set(cleaned))
 
-    return [{"text": e, "label": "LOCATION"} for e in cleaned]
+    # keep only the longest location phrase when a shorter one is contained inside it
+    filtered = []
+    for e in cleaned:
+        if any(e != other and e in other for other in cleaned):
+            continue
+        filtered.append(e)
+
+    return [{"text": e, "label": "LOCATION"} for e in filtered]
