@@ -17,3 +17,18 @@ venv/
 
 # Logs
 logs/
+
+# Data
+data/
+
+# Models
+models/
+
+# Checkpoints
+*.bin
+*.safetensors
+*.pkl
+
+# Tokenizers
+tokenizer.json
+tokenizer_config.json
