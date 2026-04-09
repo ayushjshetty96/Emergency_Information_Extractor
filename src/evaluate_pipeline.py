@@ -3,21 +3,24 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.classification import classify_emergency
+from .classification import classify_emergency, get_classifier_info
 
-# Load dataset
-df = pd.read_csv("data/processed/test.csv")
+# Load dataset - using the newly generated emergency classification dataset
+df = pd.read_csv("data/raw/emergency_classification_dataset.csv")
 
-df = df.head(50)  # keep for speed
+classifier_info = get_classifier_info()
+print("Using classifier model:", classifier_info["model_type"])
+print("Model path:", classifier_info["model_path"])
+print("Label mapping:", classifier_info["label_mapping"])
 
 true_labels = []
 pred_labels = []
 
-print("\nRunning Evaluation...\n")
+print("\nRunning Evaluation on Emergency Classification Dataset...\n")
 
 for i, row in df.iterrows():
 
-    text = row["clean_text"]
+    text = row["text"]
     true_label = row["label"]
 
     result = classify_emergency(text)
@@ -31,6 +34,7 @@ for i, row in df.iterrows():
 
     true_labels.append(true_label)
     pred_labels.append(predicted_label)
+
 
 # =============================
 # METRICS

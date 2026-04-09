@@ -11,7 +11,7 @@ def detect_language(text):
     # Common Kannada words written in English (transliteration)
     kannada_words = [
         "aagide", "ide", "iddare", "nalli", "hatra", "hattira",
-        "dodda", "chikka", "bengaluru", "majestic"
+        "dodda", "chikka"
     ]
 
     words = text.lower().split()

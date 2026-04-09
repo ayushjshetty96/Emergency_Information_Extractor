@@ -1,12 +1,12 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from preprocessing import clean_text
+from src.preprocessing import clean_text
 
 # Load dataset
 df = pd.read_csv("data/processed/emergency_dataset_final.csv")
-
+print(df["incident"].value_counts())
 print("Original dataset shape:", df.shape)
-
+print("Final dataset size before split:", len(df))
 # Remove rows without text
 df = df.dropna(subset=["text"])
 
@@ -39,7 +39,7 @@ print("Dataset after label cleaning:", df.shape)
 # Split dataset
 train_df, temp_df = train_test_split(
     df,
-    test_size=0.2,
+    test_size=0.3,
     random_state=42,
     stratify=df["label"]
 )

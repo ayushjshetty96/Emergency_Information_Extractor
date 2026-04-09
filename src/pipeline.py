@@ -86,8 +86,8 @@ if __name__ == "__main__":
         # "A gang robbery reported outside a jewelry shop near Indiranagar metro",
         # "Bridge collapse reported near railway station causing traffic jam",
         # "Bengaluru Majestic bus stand nalli accident aagide",
-        "Fire near mg road gurugram haryana, multiple vehicles burnt, people injured",
-        "Colaba Causeway, Mumbai par fire hogaya, logon ko bachao"
+        # "Fire near mg road gurugram haryana, multiple vehicles burnt, people injured",
+        "Mumbai par earthquake hogaya, logon ko bachao"
         
     ]
 
